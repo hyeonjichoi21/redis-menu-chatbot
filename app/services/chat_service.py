@@ -1,3 +1,4 @@
+import json
 from typing import List, Dict
 from openai import OpenAI
 from ..config import settings
@@ -18,31 +19,78 @@ class ChatService:
     def _get_user_history(self, user_id: str) -> List[Dict[str, str]]:
         """
         Redis에서 대화 히스토리를 조회한다.
+        JSON 문자열로 저장된 데이터를 파싱해 role/content 리스트로 복원한다.
         """
         key = settings.CHAT_HISTORY_PREFIX + user_id
         items = self.redis.lrange(key, -settings.MAX_HISTORY, -1)
+        if not items:
+            return []
 
-        return [eval(item) for item in items] if items else []
+        history = []
+        for item in items:
+            try:
+                history.append(json.loads(item))
+            except json.JSONDecodeError:
+                # 잘못 저장된 값이 있더라도 전체 흐름은 깨지지 않도록 방어
+                continue
+        return history
 
     def _save_message(self, user_id: str, role: str, content: str):
         """
-        Redis에 대화 메시지를 저장한다.
+        Redis에 대화 메시지를 JSON 문자열로 저장한다.
         """
         key = settings.CHAT_HISTORY_PREFIX + user_id
-        self.redis.rpush(key, str({"role": role, "content": content}))
+        payload = {"role": role, "content": content}
+        self.redis.rpush(key, json.dumps(payload))
+
+    def _build_messages(self, user_id: str, message: str) -> List[Dict[str, str]]:
+        """
+        OpenAI에 전달할 messages 리스트를 생성한다.
+        - system 프롬프트
+        - 과거 대화 히스토리
+        - 현재 사용자 메시지
+        """
+        history = self._get_user_history(user_id)
+
+        system_prompt = (
+            "당신은 한국 사용자에게 오늘 먹을 메뉴를 추천해주는 챗봇입니다. "
+            "사용자의 대화 맥락을 기억하고, 기분과 상황(시간대, 날씨 등)을 고려해 "
+            "한두 가지 메뉴를 자연스러운 한국어로 추천해 주세요. "
+            "추천 이유도 짧게 덧붙여 주세요."
+        )
+
+        messages: List[Dict[str, str]] = [
+            {"role": "system", "content": system_prompt},
+        ]
+
+        # 과거 대화 히스토리 추가
+        messages.extend(history)
+
+        # 현재 사용자 메시지 추가
+        messages.append({"role": "user", "content": message})
+
+        return messages
 
     def generate_reply(self, user_id: str, message: str) -> str:
         """
-        1차 버전: 단순한 응답(에코 기반) 반환.
-        이후 모델 프롬프트/메뉴 추천 로직은 점진적으로 추가한다.
+        OpenAI Chat Completions API를 사용해 메뉴 추천 응답을 생성한다.
         """
-        # 대화 저장 (사용자 메시지)
+        # 현재 사용자 메시지를 먼저 저장
         self._save_message(user_id, "user", message)
 
-        # 간단한 응답 생성 (임시)
-        reply = f"'{message}' 라고 하셨군요! 곧 메뉴 추천 기능이 추가될 예정이에요 :)"
+        messages = self._build_messages(user_id, message)
 
-        # 저장 (챗봇 응답)
+        try:
+            completion = self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=messages,
+            )
+            reply = completion.choices[0].message.content.strip()
+        except Exception:
+            # 모델 호출 실패 시 기본 안내 응답
+            reply = "메뉴를 추천하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요!"
+
+        # 챗봇 응답도 히스토리에 저장
         self._save_message(user_id, "assistant", reply)
 
         return reply
