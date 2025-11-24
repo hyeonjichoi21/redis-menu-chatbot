@@ -25,8 +25,10 @@ FastAPI, Redis, OpenAI API, SSE(Stream) 등 새로운 기술들을 직접 설계
 
 아래는 실제 동작 화면입니다👇  
 
+- 챗봇 시연 영상
 ![챗봇 시연 영상](demo/Animation.gif)
 
+- Cursor 시연 영상
 ![Cursor 시연 영상](demo/Animation2.gif)
 
 
