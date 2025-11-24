@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends
 from .dependencies import get_chat_service
 from .schemas import ChatRequest, ChatResponse
 from .services.chat_service import ChatService
+from sse_starlette.sse import EventSourceResponse
 
 app = FastAPI(
     title="Redis Menu Chatbot",
@@ -25,3 +26,20 @@ def chat(
     """
     reply = chat_service.generate_reply(user_id=request.user_id, message=request.message)
     return ChatResponse(reply=reply)
+
+@app.post("/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    chat_service: ChatService = Depends(get_chat_service),
+):
+    """
+    SSE 기반 실시간 메뉴 추천 스트리밍 엔드포인트.
+    """
+    async def event_generator():
+        async for token in chat_service.generate_reply_stream(
+            user_id=request.user_id,
+            message=request.message,
+        ):
+            yield {"data": token}
+
+    return EventSourceResponse(event_generator())

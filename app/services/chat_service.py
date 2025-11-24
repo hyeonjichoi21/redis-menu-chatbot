@@ -94,3 +94,36 @@ class ChatService:
         self._save_message(user_id, "assistant", reply)
 
         return reply
+
+        async def generate_reply_stream(self, user_id: str, message: str):
+        """
+        OpenAI Chat Completions 스트리밍을 사용하여
+        실시간으로 메뉴 추천 응답을 생성한다.
+        """
+        self._save_message(user_id, "user", message)
+
+        messages = self._build_messages(user_id, message)
+
+        try:
+            # 스트리밍 호출
+            stream = self.client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=messages,
+                stream=True,
+            )
+
+            full_reply = ""
+
+            # 스트림 이벤트 순차 처리
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    full_reply += delta
+                    yield delta  # 프론트로 스트리밍 전달
+
+            # 전체 응답을 Redis에 저장
+            self._save_message(user_id, "assistant", full_reply)
+
+        except Exception:
+            error_msg = "스트리밍 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요!"
+            yield error_msg
