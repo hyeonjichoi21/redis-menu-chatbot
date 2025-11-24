@@ -31,7 +31,6 @@ class ChatService:
             try:
                 history.append(json.loads(item))
             except json.JSONDecodeError:
-                # 잘못 저장된 값이 있더라도 전체 흐름은 깨지지 않도록 방어
                 continue
         return history
 
@@ -63,10 +62,7 @@ class ChatService:
             {"role": "system", "content": system_prompt},
         ]
 
-        # 과거 대화 히스토리 추가
         messages.extend(history)
-
-        # 현재 사용자 메시지 추가
         messages.append({"role": "user", "content": message})
 
         return messages
@@ -75,9 +71,7 @@ class ChatService:
         """
         OpenAI Chat Completions API를 사용해 메뉴 추천 응답을 생성한다.
         """
-        # 현재 사용자 메시지를 먼저 저장
         self._save_message(user_id, "user", message)
-
         messages = self._build_messages(user_id, message)
 
         try:
@@ -87,15 +81,12 @@ class ChatService:
             )
             reply = completion.choices[0].message.content.strip()
         except Exception:
-            # 모델 호출 실패 시 기본 안내 응답
             reply = "메뉴를 추천하는 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요!"
 
-        # 챗봇 응답도 히스토리에 저장
         self._save_message(user_id, "assistant", reply)
-
         return reply
 
-        async def generate_reply_stream(self, user_id: str, message: str):
+    async def generate_reply_stream(self, user_id: str, message: str):
         """
         OpenAI Chat Completions 스트리밍을 사용하여
         실시간으로 메뉴 추천 응답을 생성한다.
@@ -105,7 +96,6 @@ class ChatService:
         messages = self._build_messages(user_id, message)
 
         try:
-            # 스트리밍 호출
             stream = self.client.chat.completions.create(
                 model=settings.OPENAI_MODEL,
                 messages=messages,
@@ -114,16 +104,13 @@ class ChatService:
 
             full_reply = ""
 
-            # 스트림 이벤트 순차 처리
             for chunk in stream:
                 delta = chunk.choices[0].delta.content
                 if delta:
                     full_reply += delta
-                    yield delta  # 프론트로 스트리밍 전달
+                    yield delta
 
-            # 전체 응답을 Redis에 저장
             self._save_message(user_id, "assistant", full_reply)
 
         except Exception:
-            error_msg = "스트리밍 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요!"
-            yield error_msg
+            yield "스트리밍 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요!"

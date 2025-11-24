@@ -80,7 +80,7 @@
       border-radius: 16px;
       margin-bottom: 10px;
       font-size: 14px;
-      line-height: 1.4;
+      line-height: 1.6;
       word-break: keep-all;
       white-space: pre-wrap;
     }
@@ -284,10 +284,11 @@
           const lines = chunk.split("\n");
           for (const line of lines) {
             if (line.startsWith("data:")) {
-              const token = line.replace("data:", "").trim();
-              botText += token;
-              botBubble.textContent = botText;
-              messagesEl.scrollTop = messagesEl.scrollHeight;
+            // 'data:'만 떼고, 앞뒤 공백은 그대로 둔다
+            const token = line.slice(5);  // 또는 line.replace("data:", "");
+            botText += token;
+            botBubble.textContent = botText;
+            messagesEl.scrollTop = messagesEl.scrollHeight;
             }
           }
         }

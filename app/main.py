@@ -4,12 +4,16 @@ from .dependencies import get_chat_service
 from .schemas import ChatRequest, ChatResponse
 from .services.chat_service import ChatService
 from sse_starlette.sse import EventSourceResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="Redis Menu Chatbot",
     description="Redis와 OpenAI를 활용한 메뉴 추천 챗봇 API",
     version="0.1.0",
 )
+
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
 
 
 @app.post("/chat", response_model=ChatResponse)
