@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>배민 메뉴 추천 챗봇</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+
+    body {
+      background-color: #f4f5f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .chat-wrapper {
+      width: 100%;
+      max-width: 480px;
+      height: 80vh;
+      background-color: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background-color: #2ac1bc; /* 배민 민트색 느낌 */
+      color: #ffffff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-header-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background-color: rgba(255, 255, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .chat-header-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-header-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .chat-header-sub {
+      font-size: 11px;
+      opacity: 0.9;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      background: linear-gradient(to bottom, #f8fafc, #ffffff);
+    }
+
+    .chat-bubble {
+      max-width: 80%;
+      padding: 10px 12px;
+      border-radius: 16px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: keep-all;
+      white-space: pre-wrap;
+    }
+
+    .chat-bubble.user {
+      margin-left: auto;
+      background-color: #2ac1bc;
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble.bot {
+      margin-right: auto;
+      background-color: #f1f5f9;
+      color: #111827;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-meta {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 12px;
+    }
+
+    .chat-input-area {
+      border-top: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background-color: #f9fafb;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .chat-input:focus {
+      border-color: #2ac1bc;
+      box-shadow: 0 0 0 1px rgba(42, 193, 188, 0.3);
+    }
+
+    .chat-button {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      background-color: #2ac1bc;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.05s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+      white-space: nowrap;
+    }
+
+    .chat-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      opacity: 0.9;
+    }
+
+    .chat-input-row-sub {
+      display: flex;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      color: #6b7280;
+      cursor: pointer;
+      background-color: #ffffff;
+    }
+
+    .chip:hover {
+      border-color: #2ac1bc;
+      color: #111827;
+    }
+
+    .status {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-left: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-wrapper">
+    <div class="chat-header">
+      <div class="chat-header-icon">🍲</div>
+      <div class="chat-header-text">
+        <div class="chat-header-title">오늘 뭐 먹지? 챗봇</div>
+        <div class="chat-header-sub">기분 · 날씨 · 시간대에 맞는 메뉴 추천</div>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-bubble bot">
+        안녕하세요! 배달의민족 메뉴 추천 챗봇입니다 😊<br />
+        먹고 싶은 분위기나 음식 키워드를 편하게 말해 주세요.<br />
+        예) "매운 국물 요리", "야식으로 가볍게", "비 오는 날 어울리는 메뉴"
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="chat-input-row">
+        <input
+          type="text"
+          class="chat-input"
+          id="message-input"
+          placeholder="예) 매운 거 땡기는데 국물 말고 볶음으로 추천해줘"
+        />
+        <button class="chat-button" id="send-button">보내기</button>
+      </div>
+      <div class="chat-input-row-sub">
+        <span class="chip" data-preset="매운 국물 요리 추천해줘">🌶 매운 국물</span>
+        <span class="chip" data-preset="야식으로 너무 무겁지 않은 메뉴 추천해줘">🌙 야식</span>
+        <span class="chip" data-preset="비 오는 날 어울리는 메뉴 추천해줘">☔ 비 오는 날</span>
+        <span class="status" id="status-text"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000"; // 백엔드 주소
+    const messagesEl = document.getElementById("chat-messages");
+    const inputEl = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-button");
+    const statusEl = document.getElementById("status-text");
+    const chips = document.querySelectorAll(".chip");
+
+    const USER_ID = "demo-user-1"; // 임시 고정 ID (나중에 변경 가능)
+
+    function appendMessage(role, text, isStreaming = false) {
+      const bubble = document.createElement("div");
+      bubble.classList.add("chat-bubble", role === "user" ? "user" : "bot");
+      bubble.textContent = text;
+      messagesEl.appendChild(bubble);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      if (isStreaming) {
+        return bubble;
+      }
+    }
+
+    async function sendMessage() {
+      const message = inputEl.value.trim();
+      if (!message) return;
+
+      // 사용자 메시지 버블
+      appendMessage("user", message);
+      inputEl.value = "";
+
+      // 상태 텍스트
+      statusEl.textContent = "메뉴 고민 중... 🍽";
+
+      // 봇 버블 미리 하나 만들어두고 스트리밍으로 채우기
+      const botBubble = appendMessage("bot", "", true);
+
+      try {
+        const response = await fetch(`${API_BASE}/chat/stream`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_id: USER_ID,
+            message: message,
+            mood: null,
+            weather: null,
+            time_of_day: null,
+          }),
+        });
+
+        if (!response.body) {
+          botBubble.textContent = "스트리밍을 지원하지 않는 브라우저입니다.";
+          statusEl.textContent = "";
+          return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let botText = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+
+          // 서버에서 SSE 형식(data: ...)으로 온다고 가정하면, 줄 단위로 파싱
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data:")) {
+              const token = line.replace("data:", "").trim();
+              botText += token;
+              botBubble.textContent = botText;
+              messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+          }
+        }
+      } catch (e) {
+        botBubble.textContent = "응답 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.";
+      } finally {
+        statusEl.textContent = "";
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        inputEl.value = chip.dataset.preset;
+        inputEl.focus();
+      });
+    });
+  </script>
+</body>
+</html>
