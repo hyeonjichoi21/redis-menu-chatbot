@@ -49,15 +49,16 @@ FastAPI, Redis, OpenAI API, SSE(Stream) 등 새로운 기술들을 직접 설계
 
 ```
 app/
-├── main.py            # API 엔드포인트(SSE/일반 응답)
-├── config.py          # 환경 설정
-├── redis_client.py    # Redis 연결
-├── dependencies.py    # 의존성 주입 관리
-├── schemas.py         # 요청/응답 DTO
+├── main.py # API 엔드포인트(SSE/일반 응답)
+├── config.py # 환경 설정(Pydantic)
+├── redis_client.py # Redis 연결 관리
+├── dependencies.py # 의존성 주입
+├── schemas.py # 요청/응답 DTO 모델
 └── services/
-    └── chat_service.py   # 핵심 비즈니스 로직 (OpenAI + Redis)
+└── chat_service.py # 핵심 비즈니스 로직 (OpenAI + Redis)
 frontend/
-└── index.html         # 배민 스타일의 UI 샘플 페이지
+└── index.html # 배민 스타일 챗 UI (SSE 렌더링 포함)
+check_history.py # Redis 대화 히스토리 확인용 스크립트
 ```
 
 ---
