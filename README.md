@@ -21,6 +21,17 @@ FastAPI, Redis, OpenAI API, SSE(Stream) 등 새로운 기술들을 직접 설계
 
 ---
 
+## 🎥 시연 영상 (Demo)
+
+아래는 실제 동작 화면입니다👇  
+
+![챗봇 시연 영상](demo/Animation.gif)
+
+![Cursor 시연 영상](demo/Animation2.gif)
+
+
+---
+
 ## 🔧 기술 스택
 
 - **FastAPI** — 비동기 Python API 서버
@@ -149,11 +160,6 @@ Cursor는 단순 자동화 도구가 아니라
 
 이 경험을 통해  
 “AI 도구를 개발에 어떻게 통합해야 하는가”에 대한 고민을 실제로 해볼 수 있었습니다.
-
----
-
-## 주요 기능 시연 (영상/GIF)
-
 
 
 ---
